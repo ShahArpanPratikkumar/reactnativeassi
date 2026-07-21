@@ -1,3 +1,4 @@
+import React from 'react';
 import Animated from 'react-native-reanimated';
 
 export function HelloWave() {
@@ -12,8 +13,9 @@ export function HelloWave() {
         },
         animationIterationCount: 4,
         animationDuration: '300ms',
-      }}>
-      👋
+      }}
+    >
+      {'\uD83D\uDC4B'}
     </Animated.Text>
   );
 }
