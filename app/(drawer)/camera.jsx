@@ -107,7 +107,7 @@ export default function CameraScreen() {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Camera</Text>
+            <Text style={styles.headerTitle}>📷 Camera</Text>
           </View>
           <View style={styles.backButton} />
         </View>
@@ -128,7 +128,7 @@ export default function CameraScreen() {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Camera</Text>
+            <Text style={styles.headerTitle}>📷 Camera</Text>
           </View>
           <View style={styles.backButton} />
         </View>
@@ -158,7 +158,7 @@ export default function CameraScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Camera</Text>
+          <Text style={styles.headerTitle}>📷 Camera</Text>
           <Text style={styles.headerSubtitle}>Capture site photos</Text>
         </View>
         <View style={styles.backButton} />

@@ -77,7 +77,7 @@ export default function HistoryScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Survey History</Text>
+          <Text style={styles.headerTitle}>📋 Survey History</Text>
           <Text style={styles.headerSubtitle}>
             {filteredSurveys.length} of {surveys.length} surveys
           </Text>

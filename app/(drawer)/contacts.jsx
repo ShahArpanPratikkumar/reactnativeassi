@@ -176,7 +176,7 @@ export default function ContactsScreen() {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Contacts</Text>
+            <Text style={styles.headerTitle}>👥 Contacts</Text>
             <Text style={styles.headerSubtitle}>Access your contacts</Text>
           </View>
           <View style={styles.backButton} />
@@ -206,7 +206,7 @@ export default function ContactsScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Contacts</Text>
+          <Text style={styles.headerTitle}>👥 Contacts</Text>
           <Text style={styles.headerSubtitle}>
             {filteredContacts.length} contact{filteredContacts.length !== 1 ? 's' : ''}
           </Text>

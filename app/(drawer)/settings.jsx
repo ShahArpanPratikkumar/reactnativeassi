@@ -31,14 +31,14 @@ export default function SettingsScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Settings</Text>
+          <Text style={styles.headerTitle}>⚙️ Settings</Text>
           <Text style={styles.headerSubtitle}>App preferences</Text>
         </View>
         <View style={styles.backButton} />
       </View>
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
-        <Card title="General" style={styles.card}>
+        <Card title="🔔 General" style={styles.card}>
           <View style={styles.settingRow}>
             <View style={styles.settingIconContainer}>
               <Text style={styles.settingIcon}>🔔</Text>
@@ -86,7 +86,7 @@ export default function SettingsScreen() {
           </View>
         </Card>
 
-        <Card title="Data" style={styles.card}>
+        <Card title="🗑️ Data" style={styles.card}>
           <TouchableOpacity
             style={styles.menuRow}
             onPress={() => Alert.alert('Clear Cache', 'Cache cleared successfully.')}
@@ -122,7 +122,7 @@ export default function SettingsScreen() {
           </TouchableOpacity>
         </Card>
 
-        <Card title="About" style={styles.card}>
+        <Card title="ℹ️ About" style={styles.card}>
           <View style={styles.aboutRow}>
             <Text style={styles.aboutLabel}>App Version</Text>
             <View style={styles.aboutBadge}>

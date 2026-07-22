@@ -3,7 +3,6 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { SurveyProvider } from '@/context/SurveyContext';
 
-
 export default function RootLayout() {
   return (
     <SurveyProvider>

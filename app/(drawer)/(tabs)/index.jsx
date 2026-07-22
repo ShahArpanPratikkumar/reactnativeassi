@@ -60,13 +60,12 @@ export default function DashboardScreen() {
           <Text style={styles.greeting}>{getGreeting()},</Text>
           <Text style={styles.studentName}>{STUDENT.name}</Text>
           <Text style={styles.welcomeSubtext}>
-            Here&apos;s your field survey overview for today
+            Here&apos;s your field survey overview for today 🌿
           </Text>
         </View>
       </View>
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
-        {/* Stats Cards */}
         <View style={styles.statsRow}>
           <View style={[styles.statCard, { backgroundColor: '#F0FAF0' }]}>
             <Text style={styles.statIcon}>📊</Text>
@@ -85,10 +84,9 @@ export default function DashboardScreen() {
           </View>
         </View>
 
-        {/* Student Details Card */}
         <Card style={styles.sectionCard}>
           <View style={styles.cardHeader}>
-            <Text style={styles.sectionTitle}>Student Details</Text>
+            <Text style={styles.sectionTitle}>🎓 Student Details</Text>
             <View style={styles.idBadge}>
               <Text style={styles.idBadgeText}>{STUDENT.id}</Text>
             </View>
@@ -109,8 +107,7 @@ export default function DashboardScreen() {
           </View>
         </Card>
 
-        {/* Quick Actions */}
-        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <Text style={styles.sectionTitle}>⚡ Quick Actions</Text>
         <View style={styles.actionsGrid}>
           {quickActions.map((action) => (
             <TouchableOpacity
@@ -131,9 +128,8 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* Recent Surveys */}
         <View style={styles.recentHeader}>
-          <Text style={styles.sectionTitle}>Recent Surveys</Text>
+          <Text style={styles.sectionTitle}>🌿 Recent Surveys</Text>
           <TouchableOpacity onPress={() => navigation.navigate('(tabs)', { screen: 'history' })} activeOpacity={0.7}>
             <Text style={styles.viewAll}>View All →</Text>
           </TouchableOpacity>

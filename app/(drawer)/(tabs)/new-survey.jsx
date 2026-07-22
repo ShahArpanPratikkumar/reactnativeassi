@@ -109,7 +109,7 @@ export default function NewSurveyScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>New Survey</Text>
+          <Text style={styles.headerTitle}>📝 New Survey</Text>
           <Text style={styles.headerSubtitle}>Create a field inspection</Text>
         </View>
         <View style={styles.headerSpacer} />
@@ -120,7 +120,6 @@ export default function NewSurveyScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
-          {/* Progress Bar */}
           <View style={styles.progressSection}>
             <View style={styles.progressHeader}>
               <Text style={styles.progressLabel}>Progress</Text>
@@ -136,7 +135,7 @@ export default function NewSurveyScreen() {
               <View style={styles.photoRow}>
                 <Image source={{ uri: capturedPhoto }} style={styles.photoThumb} />
                 <View style={styles.photoInfo}>
-                  <Text style={styles.photoTitle}>Photo Attached</Text>
+                  <Text style={styles.photoTitle}>📷 Photo Attached</Text>
                   <Text style={styles.photoSub}>Captured from camera</Text>
                 </View>
                 <TouchableOpacity onPress={() => navigation.navigate('camera')} activeOpacity={0.7}>
@@ -158,7 +157,6 @@ export default function NewSurveyScreen() {
             </TouchableOpacity>
           )}
 
-          {/* Site Name & Client */}
           <Card style={styles.formCard}>
             <Input
               label="Site Name *"
@@ -190,8 +188,7 @@ export default function NewSurveyScreen() {
             />
           </Card>
 
-          {/* Priority */}
-          <Card title="Priority Level" style={styles.formCard}>
+          <Card title="🎯 Priority Level" style={styles.formCard}>
             <View style={styles.priorityGrid}>
               {PRIORITY_OPTIONS.map((option) => {
                 const pc = PRIORITY_COLORS[option];
@@ -219,8 +216,7 @@ export default function NewSurveyScreen() {
             {errors.priority ? <Text style={styles.errorText}>{errors.priority}</Text> : null}
           </Card>
 
-          {/* Date */}
-          <Card title="Inspection Date" style={styles.formCard}>
+          <Card title="📅 Inspection Date" style={styles.formCard}>
             <View style={styles.dateContainer}>
               <TouchableOpacity
                 style={styles.dateNavButton}
@@ -244,7 +240,6 @@ export default function NewSurveyScreen() {
             {errors.date ? <Text style={styles.errorText}>{errors.date}</Text> : null}
           </Card>
 
-          {/* Submit */}
           <View style={styles.buttonContainer}>
             <PrimaryButton
               title="Create Survey"
@@ -350,48 +345,6 @@ const styles = StyleSheet.create({
   formCard: {
     marginBottom: Spacing.lg,
   },
-  dateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dateNavButton: {
-    width: 44,
-    height: 44,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: BorderRadius.lg,
-    backgroundColor: Colors.light.primary,
-  },
-  dateNavText: {
-    fontSize: 14,
-    color: Colors.light.white,
-  },
-  dateDisplay: {
-    flex: 1,
-    alignItems: 'center',
-    marginHorizontal: Spacing.md,
-    backgroundColor: Colors.light.surfaceLight || '#F1F5F9',
-    paddingVertical: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-  },
-  dateText: {
-    ...Typography.bodySemibold,
-    color: Colors.light.text,
-  },
-  dateSubtext: {
-    ...Typography.small,
-    color: Colors.light.textSecondary,
-    marginTop: 2,
-  },
-  errorText: {
-    ...Typography.small,
-    color: Colors.light.error,
-    marginTop: Spacing.xs,
-  },
-  buttonContainer: {
-    paddingHorizontal: Spacing.sm,
-  },
   photoCard: {
     marginBottom: Spacing.lg,
   },
@@ -468,5 +421,47 @@ const styles = StyleSheet.create({
   },
   priorityLabel: {
     ...Typography.bodyMedium,
+  },
+  dateContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  dateNavButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: BorderRadius.lg,
+    backgroundColor: Colors.light.primary,
+  },
+  dateNavText: {
+    fontSize: 14,
+    color: Colors.light.white,
+  },
+  dateDisplay: {
+    flex: 1,
+    alignItems: 'center',
+    marginHorizontal: Spacing.md,
+    backgroundColor: Colors.light.surfaceLight || '#F1F5F9',
+    paddingVertical: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+  },
+  dateText: {
+    ...Typography.bodySemibold,
+    color: Colors.light.text,
+  },
+  dateSubtext: {
+    ...Typography.small,
+    color: Colors.light.textSecondary,
+    marginTop: 2,
+  },
+  errorText: {
+    ...Typography.small,
+    color: Colors.light.error,
+    marginTop: Spacing.xs,
+  },
+  buttonContainer: {
+    paddingHorizontal: Spacing.sm,
   },
 });

@@ -97,7 +97,7 @@ export default function LocationScreen() {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Location</Text>
+            <Text style={styles.headerTitle}>📍 Location</Text>
             <Text style={styles.headerSubtitle}>Track your position</Text>
           </View>
           <View style={styles.backButton} />
@@ -130,14 +130,13 @@ export default function LocationScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Location</Text>
+          <Text style={styles.headerTitle}>📍 Location</Text>
           <Text style={styles.headerSubtitle}>Track your position</Text>
         </View>
         <View style={styles.backButton} />
       </View>
 
       <View style={styles.scrollContent}>
-        {/* Map Placeholder */}
         <Card style={styles.mapCard}>
           <View style={styles.mapPlaceholder}>
             <Text style={styles.mapIcon}>🌍</Text>
@@ -159,7 +158,7 @@ export default function LocationScreen() {
           </Card>
         ) : location ? (
           <>
-            <Card title="Coordinates" style={styles.dataCard}>
+            <Card title="🧭 Coordinates" style={styles.dataCard}>
               <View style={styles.coordRow}>
                 <View style={styles.coordItem}>
                   <Text style={styles.coordLabel}>Latitude</Text>
@@ -179,7 +178,7 @@ export default function LocationScreen() {
               </View>
             </Card>
 
-            <Card title="Accuracy" style={styles.dataCard}>
+            <Card title="🎯 Accuracy" style={styles.dataCard}>
               <View style={styles.accuracyContainer}>
                 <View style={styles.accuracyRing}>
                   <Text style={styles.accuracyValue}>
@@ -201,7 +200,7 @@ export default function LocationScreen() {
             </Card>
 
             {location.timestamp ? (
-              <Card title="Timestamp" style={styles.dataCard}>
+              <Card title="🕐 Timestamp" style={styles.dataCard}>
                 <Text style={styles.timestamp}>
                   {new Date(location.timestamp).toLocaleString()}
                 </Text>

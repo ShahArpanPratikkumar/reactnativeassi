@@ -81,13 +81,12 @@ export default function ProfileScreen() {
 
       <View style={[styles.header, { paddingTop: insets.top + Spacing.sm }]}>
         <View style={styles.headerContent}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          <Text style={styles.headerTitle}>👤 Profile</Text>
           <Text style={styles.headerSubtitle}>Your account details</Text>
         </View>
       </View>
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
-        {/* Avatar Section */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarOuter}>
             <View style={styles.avatar}>
@@ -101,7 +100,6 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Personal Info */}
         <Card title="Personal Information" style={styles.card}>
           {isEditing ? (
             <>
@@ -208,8 +206,7 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        {/* Stats */}
-        <Card title="Survey Statistics" style={styles.card}>
+        <Card title="📊 Survey Statistics" style={styles.card}>
           <View style={styles.statsGrid}>
             <View style={[styles.statItem, { backgroundColor: '#F0FAF0' }]}>
               <Text style={[styles.statNumber, { color: '#2E7D32' }]}>{surveys.length}</Text>
@@ -230,7 +227,6 @@ export default function ProfileScreen() {
           </View>
         </Card>
 
-        {/* Quick Links */}
         <Card title="Quick Links" style={styles.card}>
           <TouchableOpacity
             style={styles.linkItem}

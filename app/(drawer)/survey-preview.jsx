@@ -32,7 +32,7 @@ export default function SurveyPreviewScreen() {
             <Text style={styles.backIcon}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerCenter}>
-            <Text style={styles.headerTitle}>Survey Preview</Text>
+            <Text style={styles.headerTitle}>📋 Survey Preview</Text>
             <Text style={styles.headerSubtitle}>Review survey details</Text>
           </View>
           <View style={styles.backButton} />
@@ -93,7 +93,7 @@ export default function SurveyPreviewScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Survey Preview</Text>
+          <Text style={styles.headerTitle}>📋 Survey Preview</Text>
           <Text style={styles.headerSubtitle}>Review before submit</Text>
         </View>
         <View style={styles.backButton} />
@@ -115,11 +115,11 @@ export default function SurveyPreviewScreen() {
           </View>
         </Card>
 
-        <Card title="Description" style={styles.card}>
+        <Card title="📝 Description" style={styles.card}>
           <Text style={styles.description}>{survey.description}</Text>
         </Card>
 
-        <Card title="Details" style={styles.card}>
+        <Card title="📊 Details" style={styles.card}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Date</Text>
             <Text style={styles.detailValue}>{formatDate(survey.date)}</Text>
@@ -149,11 +149,11 @@ export default function SurveyPreviewScreen() {
         </Card>
 
         {survey.photo ? (
-          <Card title="Captured Photo" style={styles.card}>
+          <Card title="📷 Captured Photo" style={styles.card}>
             <Image source={{ uri: survey.photo }} style={styles.photo} />
           </Card>
         ) : (
-          <Card title="Captured Photo" style={styles.card}>
+          <Card title="📷 Captured Photo" style={styles.card}>
             <View style={styles.photoPlaceholder}>
               <Text style={styles.photoPlaceholderIcon}>📷</Text>
               <Text style={styles.photoPlaceholderText}>No photo captured</Text>
@@ -163,7 +163,7 @@ export default function SurveyPreviewScreen() {
         )}
 
         {survey.contact ? (
-          <Card title="Selected Contact" style={styles.card}>
+          <Card title="👥 Selected Contact" style={styles.card}>
             <View style={styles.contactRow}>
               <View style={styles.contactAvatar}>
                 <Text style={styles.contactAvatarText}>
@@ -179,7 +179,7 @@ export default function SurveyPreviewScreen() {
         ) : null}
 
         {survey.location ? (
-          <Card title="Location" style={styles.card}>
+          <Card title="📍 Location" style={styles.card}>
             <View style={styles.locationRow}>
               <View style={styles.locationItem}>
                 <Text style={styles.locationLabel}>Latitude</Text>
@@ -199,7 +199,7 @@ export default function SurveyPreviewScreen() {
         ) : null}
 
         {survey.notes ? (
-          <Card title="Notes" style={styles.card}>
+          <Card title="📝 Notes" style={styles.card}>
             <Text style={styles.notes}>{survey.notes}</Text>
           </Card>
         ) : null}

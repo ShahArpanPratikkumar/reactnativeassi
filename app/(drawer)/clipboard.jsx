@@ -125,15 +125,14 @@ export default function ClipboardScreen() {
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Clipboard</Text>
+          <Text style={styles.headerTitle}>📎 Clipboard</Text>
           <Text style={styles.headerSubtitle}>Copy & paste data</Text>
         </View>
         <View style={styles.backButton} />
       </View>
 
       <ScrollView style={styles.scrollContent} showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollPadding}>
-        {/* Clipboard Status */}
-        <Card title="Clipboard Status" style={styles.card}>
+        <Card title="📋 Clipboard Status" style={styles.card}>
           <View style={styles.clipboardPreviewContainer}>
             <Text style={styles.clipboardPreview}>
               {clipboardContent ? `"${clipboardContent}"` : 'Clipboard is empty'}
@@ -147,8 +146,7 @@ export default function ClipboardScreen() {
           />
         </Card>
 
-        {/* Copy Survey ID */}
-        <Card title="Copy Survey ID" subtitle="Select a survey to copy its ID" style={styles.card}>
+        <Card title="📋 Copy Survey ID" subtitle="Select a survey to copy its ID" style={styles.card}>
           <View style={styles.surveyList}>
             {surveys.map((survey) => (
               <TouchableOpacity
@@ -193,8 +191,7 @@ export default function ClipboardScreen() {
           />
         </Card>
 
-        {/* Copy Contact Number */}
-        <Card title="Copy Contact Number" subtitle="Enter and copy a contact number" style={styles.card}>
+        <Card title="📞 Copy Contact Number" subtitle="Enter and copy a contact number" style={styles.card}>
           <Input
             label="Contact Number"
             value={contactNumber}
@@ -211,8 +208,7 @@ export default function ClipboardScreen() {
           />
         </Card>
 
-        {/* Copy Current Location */}
-        <Card title="Copy Current Location" subtitle="Get GPS and copy coordinates" style={styles.card}>
+        <Card title="📍 Copy Current Location" subtitle="Get GPS and copy coordinates" style={styles.card}>
           {location ? (
             <View style={styles.locationInfo}>
               <View style={styles.locationItem}>
@@ -238,8 +234,7 @@ export default function ClipboardScreen() {
           />
         </Card>
 
-        {/* Paste Notes */}
-        <Card title="Paste Notes" subtitle="Paste clipboard content into notes" style={styles.card}>
+        <Card title="📝 Paste Notes" subtitle="Paste clipboard content into notes" style={styles.card}>
           <TextInput
             style={styles.notesInput}
             value={pasteNotes}
@@ -258,8 +253,7 @@ export default function ClipboardScreen() {
           />
         </Card>
 
-        {/* Clear Clipboard */}
-        <Card title="Clear Clipboard Data" subtitle="Remove all data from clipboard" style={styles.card}>
+        <Card title="🗑️ Clear Clipboard Data" subtitle="Remove all data from clipboard" style={styles.card}>
           <Text style={styles.warningText}>
             This will clear all text currently stored in the system clipboard.
           </Text>
