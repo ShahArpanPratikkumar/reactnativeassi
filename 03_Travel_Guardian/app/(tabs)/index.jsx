@@ -457,9 +457,28 @@ export default function HomeDashboard() {
         </Pressable>
 
         <View style={styles.welcomeTextContainer}>
-          <View style={[styles.brandBadge, { backgroundColor: theme.primaryLight }]}>
-            <Ionicons name="shield-checkmark" size={13} color={theme.primary} />
-            <Text style={[styles.brandBadgeText, { color: theme.primary }]}>Travel Guardian</Text>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+            <View style={[styles.brandBadge, { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="shield-checkmark" size={13} color={theme.primary} />
+              <Text style={[styles.brandBadgeText, { color: theme.primary }]}>Travel Guardian</Text>
+            </View>
+            <Pressable
+              onPress={() => setGuideBookVisible(true)}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: theme.surface,
+                paddingHorizontal: 9,
+                paddingVertical: 3,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: theme.border,
+                gap: 4,
+              }}
+            >
+              <Ionicons name="book" size={12} color={theme.primary} />
+              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.primary }}>App Guide</Text>
+            </Pressable>
           </View>
           <Text style={[styles.greetingText, { color: theme.text }]}>
             {getTimeOfDay()}, {userName} 👋
