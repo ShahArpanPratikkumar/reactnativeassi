@@ -18,6 +18,7 @@ import {
   Linking,
   Platform,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import colors from '../../constants/colors';
@@ -436,6 +437,50 @@ export default function HomeDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.background }}>
+      {/* ── 1. Top Unified Edge-to-Edge Navigation Bar ─────── */}
+      <SafeAreaView edges={['top']} style={{ backgroundColor: theme.card, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+        <View style={styles.topBar}>
+          <Pressable
+            onPress={() => setIsSideNavOpen(true)}
+            style={[styles.topBarIconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+            accessibilityLabel="Open Navigation Menu"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="menu-outline" size={22} color={theme.text} />
+          </Pressable>
+
+          <View style={styles.topBarBrandCenter}>
+            <View style={[styles.topBarShieldCircle, { backgroundColor: theme.primaryLight }]}>
+              <Ionicons name="shield-checkmark" size={16} color={theme.primary} />
+            </View>
+            <Text style={[styles.topBarBrandTitle, { color: theme.text }]}>Travel Guardian</Text>
+            <View style={styles.topBarProtectedBadge}>
+              <View style={styles.topBarPulseDot} />
+              <Text style={styles.topBarProtectedText}>ACTIVE</Text>
+            </View>
+          </View>
+
+          <View style={styles.topBarActionsRow}>
+            <Pressable
+              onPress={() => setGuideBookVisible(true)}
+              style={[styles.topBarIconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              accessibilityLabel="App Guide"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="book-outline" size={18} color={theme.primary} />
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/(tabs)/profile')}
+              style={[styles.topBarIconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
+              accessibilityLabel="Profile & Settings"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="settings-outline" size={18} color={theme.textSecondary} />
+            </Pressable>
+          </View>
+        </View>
+      </SafeAreaView>
+
       <ScrollView
         style={[styles.container, { backgroundColor: theme.background }]}
         contentContainerStyle={styles.contentContainer}
@@ -445,112 +490,84 @@ export default function HomeDashboard() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[theme.primary]} />
         }
       >
-      {/* ── 1. Header ───────────────────────────────────────── */}
-      <View style={[styles.welcomeCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+        {/* ── 1B. User Greeting Hero Card ────────────────────────── */}
+        <View style={[styles.greetingCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
+          <View style={styles.greetingTextColumn}>
+            <Text style={[styles.greetingSalutation, { color: theme.textSecondary }]}>
+              {getTimeOfDay().toUpperCase()}
+            </Text>
+            <Text style={[styles.greetingName, { color: theme.text }]} numberOfLines={1}>
+              {userName} 👋
+            </Text>
+            <Text style={[styles.greetingSub, { color: theme.textLight }]}>
+              Personal Travel Safety Companion • 24/7 Shield
+            </Text>
+          </View>
+
+          <Pressable
+            onPress={() => router.push('/(tabs)/profile')}
+            style={styles.avatarWrapper}
+            accessibilityLabel="Open Profile"
+          >
+            {avatarUri && !avatarError ? (
+              <Image
+                source={{ uri: avatarUri }}
+                style={[styles.avatarImage, { borderColor: theme.primary }]}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <View style={[styles.avatarInitialsBadge, { backgroundColor: theme.primary }]}>
+                <Text style={styles.avatarInitialsText}>{getInitials ? getInitials(userName) : 'TG'}</Text>
+              </View>
+            )}
+            <View style={styles.avatarOnlineDot} />
+          </Pressable>
+        </View>
+
+        {/* ── 2. Emergency SOS Banner ───────────────────────── */}
         <Pressable
-          onPress={() => setIsSideNavOpen(true)}
-          style={[styles.menuButton, { backgroundColor: theme.primaryLight }]}
-          accessibilityLabel="Open Navigation Menu"
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          style={({ pressed }) => [styles.sosButton, pressed && styles.sosButtonPressed]}
+          onPress={() => router.push('/sos')}
         >
-          <Ionicons name="menu" size={24} color={theme.primary} />
+          <View style={styles.sosIconContainer}>
+            <Ionicons name="warning" size={28} color={colors.white} />
+          </View>
+          <View style={styles.sosTextWrapper}>
+            <Text style={styles.sosMainText}>EMERGENCY SOS</Text>
+            <Text style={styles.sosSubText}>Instant siren, live GPS beacon & responder alert</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={22} color={colors.white} />
         </Pressable>
 
-        <View style={styles.welcomeTextContainer}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
-            <View style={[styles.brandBadge, { backgroundColor: theme.primaryLight }]}>
-              <Ionicons name="shield-checkmark" size={13} color={theme.primary} />
-              <Text style={[styles.brandBadgeText, { color: theme.primary }]}>Travel Guardian</Text>
-            </View>
-            <Pressable
-              onPress={() => setGuideBookVisible(true)}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: theme.surface,
-                paddingHorizontal: 9,
-                paddingVertical: 3,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: theme.border,
-                gap: 4,
-              }}
-            >
-              <Ionicons name="book" size={12} color={theme.primary} />
-              <Text style={{ fontSize: 11, fontWeight: '700', color: theme.primary }}>App Guide</Text>
-            </Pressable>
-          </View>
-          <Text style={[styles.greetingText, { color: theme.text }]}>
-            {getTimeOfDay()}, {userName} 👋
-          </Text>
-          <Text style={[styles.welcomeSubtitle, { color: theme.textSecondary }]}>
-            Your personal travel safety companion
-          </Text>
-        </View>
+        {/* ── 2A. SafeWalk & Safety Readiness ──────────────────── */}
         <Pressable
-          onPress={() => router.push('/(tabs)/profile')}
-          style={styles.avatarWrapper}
-          accessibilityLabel="Open Profile"
+          style={({ pressed }) => [
+            styles.safeWalkBanner,
+            { backgroundColor: theme.card, borderColor: colors.primary + '50' },
+            pressed && styles.safeWalkBannerPressed,
+          ]}
+          onPress={() => setSafeWalkModalVisible(true)}
         >
-          {avatarUri && !avatarError ? (
-            <Image
-              source={{ uri: avatarUri }}
-              style={[styles.avatarImage, { borderColor: theme.primary }]}
-              onError={() => setAvatarError(true)}
-            />
-          ) : (
-            <View style={[styles.avatarInitialsBadge, { backgroundColor: theme.primary }]}>
-              <Text style={styles.avatarInitialsText}>{getInitials ? getInitials(userName) : 'TG'}</Text>
-            </View>
-          )}
-          <View style={styles.avatarOnlineDot} />
-        </Pressable>
-      </View>
-
-      {/* ── 2. Emergency SOS Banner ───────────────────────── */}
-      <Pressable
-        style={({ pressed }) => [styles.sosButton, pressed && styles.sosButtonPressed]}
-        onPress={() => router.push('/sos')}
-      >
-        <View style={styles.sosIconContainer}>
-          <Ionicons name="warning" size={28} color={colors.white} />
-        </View>
-        <View style={styles.sosTextWrapper}>
-          <Text style={styles.sosMainText}>EMERGENCY SOS</Text>
-          <Text style={styles.sosSubText}>Instant siren, live GPS beacon & responder alert</Text>
-        </View>
-        <Ionicons name="chevron-forward" size={22} color={colors.white} />
-      </Pressable>
-
-      {/* ── 2A. SafeWalk & Safety Readiness ──────────────────── */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.safeWalkBanner,
-          { backgroundColor: theme.card, borderColor: colors.primary + '50' },
-          pressed && styles.safeWalkBannerPressed,
-        ]}
-        onPress={() => setSafeWalkModalVisible(true)}
-      >
-        <View style={[styles.safeWalkIconContainer, { backgroundColor: colors.primary + '18' }]}>
-          <Ionicons name="shield-checkmark" size={26} color={colors.primary} />
-        </View>
-        <View style={styles.safeWalkTextWrapper}>
-          <View style={styles.safeWalkTitleRow}>
-            <Text style={[styles.safeWalkMainText, { color: theme.text }]}>Guardian SafeWalk</Text>
-            <View style={[styles.proBadge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.proBadgeText}>PRO SHIELD</Text>
-            </View>
+          <View style={[styles.safeWalkIconContainer, { backgroundColor: colors.primary + '18' }]}>
+            <Ionicons name="shield-checkmark" size={26} color={colors.primary} />
           </View>
-          <Text style={[styles.safeWalkSubText, { color: theme.textSecondary }]}>
-            Journey timer, fake escape call, tactical strobe & responder beacon
-          </Text>
-        </View>
-        <Ionicons name="chevron-forward" size={20} color={colors.primary} />
-      </Pressable>
+          <View style={styles.safeWalkTextWrapper}>
+            <View style={styles.safeWalkTitleRow}>
+              <Text style={[styles.safeWalkMainText, { color: theme.text }]}>Guardian SafeWalk</Text>
+              <View style={[styles.proBadge, { backgroundColor: colors.primary }]}>
+                <Text style={styles.proBadgeText}>PRO SHIELD</Text>
+              </View>
+            </View>
+            <Text style={[styles.safeWalkSubText, { color: theme.textSecondary }]}>
+              Journey timer, fake escape call, tactical strobe & responder beacon
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+        </Pressable>
 
-      {/* ── 2B. Location & Safety Radar ────────────────────── */}
-      <View>
-        <View style={styles.sectionHeader}>
+        {/* ── 2B. Location & Safety Radar ────────────────────── */}
+        <View>
+          <View style={styles.sectionHeader}>
             <View style={styles.sectionTitleRow}>
               <Ionicons name="navigate" size={18} color={theme.primary} />
               <Text style={[styles.sectionTitle, { color: theme.text }]}>Current Location & Safety Map</Text>
@@ -564,28 +581,7 @@ export default function HomeDashboard() {
           </View>
 
           <View style={[styles.locationCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-            {/* Prominent Full Interactive Map Launcher Banner */}
-            <Pressable
-              style={({ pressed }) => [
-                styles.openFullMapBannerBtn,
-                { backgroundColor: theme.primary },
-                pressed && { opacity: 0.85 },
-              ]}
-              onPress={() => router.push('/(tabs)/map')}
-            >
-              <View style={styles.openFullMapIconCircle}>
-                <Ionicons name="map" size={22} color="#FFFFFF" />
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.openFullMapTitle}>Open Full Interactive Safety Map</Text>
-                <Text style={styles.openFullMapSubtitle}>
-                  Zero-key OSM radar, satellite view & emergency safe zones
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
-            </Pressable>
-
-            <View style={[styles.locationInfoBox, { borderTopColor: theme.border }]}>
+            <View style={styles.locationInfoBox}>
               <View style={styles.locationTopRow}>
                 <View style={styles.locationAddressBlock}>
                   <View style={styles.locationStatusRow}>
@@ -641,17 +637,31 @@ export default function HomeDashboard() {
                   <Ionicons name="share-social-outline" size={16} color={theme.text} />
                   <Text style={[styles.locationControlText, { color: theme.text }]}>Share</Text>
                 </Pressable>
-
-                <Pressable
-                  style={[styles.locationControlBtn, { backgroundColor: theme.primary, borderColor: theme.primary }]}
-                  onPress={() => router.push('/(tabs)/map')}
-                >
-                  <Ionicons name="map" size={16} color="#FFFFFF" />
-                  <Text style={[styles.locationControlText, { color: '#FFFFFF' }]}>Full Map</Text>
-                </Pressable>
               </View>
             </View>
+
+            {/* Prominent Full Interactive Map Launcher Banner */}
+            <Pressable
+              style={({ pressed }) => [
+                styles.openFullMapBannerBtn,
+                { backgroundColor: theme.primary },
+                pressed && { opacity: 0.88 },
+              ]}
+              onPress={() => router.push('/(tabs)/map')}
+            >
+              <View style={styles.openFullMapIconCircle}>
+                <Ionicons name="map" size={22} color="#FFFFFF" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.openFullMapTitle}>Open Full Interactive Safety Map</Text>
+                <Text style={styles.openFullMapSubtitle}>
+                  Zero-key OSM radar, satellite view & emergency safe zones
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#FFFFFF" />
+            </Pressable>
           </View>
+        </View>
 
           {/* Nearby Safety Places */}
           <View style={styles.sectionHeader}>
@@ -730,7 +740,6 @@ export default function HomeDashboard() {
               ))}
             </View>
           )}
-        </View>
 
         {/* ── 2C. Safety Score & Checklist ───────────────────── */}
         <View style={{ marginTop: 12 }}>
@@ -1555,7 +1564,7 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 14,
     margin: 12,
-    marginBottom: 6,
+    marginTop: 0,
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -1627,7 +1636,93 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   contentContainer: { padding: 16, paddingBottom: 40 },
 
-  // ─── Header ─────────────────────────────────────────────
+  // ─── Top Bar & Greeting Hero ────────────────────────────
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  topBarIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topBarBrandCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+  },
+  topBarShieldCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  topBarBrandTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: -0.2,
+  },
+  topBarProtectedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 4,
+  },
+  topBarPulseDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#10B981',
+  },
+  topBarProtectedText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.5,
+  },
+  topBarActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  greetingCard: {
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 14,
+    borderWidth: 1,
+  },
+  greetingTextColumn: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  greetingSalutation: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  greetingName: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  greetingSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
   welcomeCard: {
     borderRadius: 14,
     padding: 16,

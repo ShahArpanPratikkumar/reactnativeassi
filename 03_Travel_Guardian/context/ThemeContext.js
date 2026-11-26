@@ -55,20 +55,22 @@ export const darkColors = {
 };
 
 const ThemeContext = createContext({
-  theme: lightColors,
-  isDarkMode: false,
+  theme: darkColors,
+  isDarkMode: true,
   toggleTheme: () => {},
 });
 
 export const ThemeProvider = ({ children }) => {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(true);
 
   // Load saved theme preference on start
   useEffect(() => {
     const loadTheme = async () => {
       try {
         const saved = await AsyncStorage.getItem('user_theme_mode');
-        if (saved === 'dark') {
+        if (saved === 'light') {
+          setIsDarkMode(false);
+        } else if (saved === 'dark') {
           setIsDarkMode(true);
         }
       } catch (err) {
