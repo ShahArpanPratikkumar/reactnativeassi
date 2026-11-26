@@ -1,9 +1,15 @@
+import { Platform } from 'react-native';
+
 // Travel Guardian - Global Application Configuration
 // Centralized settings for network endpoints, timeouts, and storage keys
 
 // Backend REST API base URL
-// Uses the host computer's active Wi-Fi IPv4 address (192.168.1.205) so physical test devices can connect
-export const API_BASE_URL = 'http://192.168.1.205:5000/api';
+// On Web browser: uses localhost:5001
+// On Physical mobile devices (Expo Go / Android / iOS): uses the PC's current local Wi-Fi IP (192.168.1.93)
+export const API_BASE_URL =
+  Platform.OS === 'web'
+    ? 'http://localhost:5001/api'
+    : 'http://192.168.1.93:5001/api';
 
 // Network request timeout in milliseconds
 export const DEFAULT_REQUEST_TIMEOUT = 10000;

@@ -66,7 +66,7 @@ cd backend
 npm install
 npm start
 ```
-The server will start on `http://localhost:5000` (or `http://YOUR_LOCAL_IP:5000`).
+The server will start on `http://localhost:5001` (or `http://YOUR_LOCAL_IP:5001`).
 
 ### 3. Frontend Setup
 ```bash
