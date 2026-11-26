@@ -462,6 +462,14 @@ export default function HomeDashboard() {
 
           <View style={styles.topBarActionsRow}>
             <Pressable
+              onPress={() => setMedicalCardVisible(true)}
+              style={[styles.topBarIconBtn, { backgroundColor: 'rgba(239,68,68,0.12)', borderColor: '#EF4444' + '40' }]}
+              accessibilityLabel="Emergency Medical QR"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name="medkit-outline" size={18} color="#EF4444" />
+            </Pressable>
+            <Pressable
               onPress={() => setGuideBookVisible(true)}
               style={[styles.topBarIconBtn, { backgroundColor: theme.surface, borderColor: theme.border }]}
               accessibilityLabel="App Guide"

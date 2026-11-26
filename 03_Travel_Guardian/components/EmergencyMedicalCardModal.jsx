@@ -15,7 +15,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTheme } from '../context/ThemeContext';
 import colors from '../constants/colors';
 
-const STORAGE_KEY = 'emergency_medical_profile_v1';
+// Use BOTH storage keys so medical pass always has the freshest profile data
+const MEDICAL_KEY = 'emergency_medical_profile_v1';
+const USER_DATA_KEY = 'userData';
 
 export default function EmergencyMedicalCardModal({
   visible,
@@ -23,35 +25,54 @@ export default function EmergencyMedicalCardModal({
   userName = 'Traveler',
 }) {
   const { theme } = useTheme();
-  const [bloodGroup, setBloodGroup] = useState('O+');
-  const [allergies, setAllergies] = useState('None (Penicillin Safe)');
+  const [bloodGroup, setBloodGroup] = useState('');
+  const [allergies, setAllergies] = useState('');
   const [medicalConditions, setMedicalConditions] = useState('None');
-  const [emergencyPhone, setEmergencyPhone] = useState('+91 98765 43210');
+  const [emergencyPhone, setEmergencyPhone] = useState('');
   const [isEditing, setIsEditing] = useState(false);
 
+  // Reload every time the modal becomes visible — picks up latest profile edits
   useEffect(() => {
-    loadProfile();
-  }, []);
+    if (visible) {
+      loadProfile();
+      setIsEditing(false);
+    }
+  }, [visible]);
 
   const loadProfile = async () => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const data = JSON.parse(stored);
-        if (data.bloodGroup) setBloodGroup(data.bloodGroup);
-        if (data.allergies) setAllergies(data.allergies);
-        if (data.medicalConditions) setMedicalConditions(data.medicalConditions);
-        if (data.emergencyPhone) setEmergencyPhone(data.emergencyPhone);
-      }
+      // 1. Load user profile data first (blood group, allergies from profile screen)
+      const userJson = await AsyncStorage.getItem(USER_DATA_KEY);
+      let userData = userJson ? JSON.parse(userJson) : {};
+
+      // 2. Load medical-specific overrides (medicalConditions, emergencyPhone)
+      const medJson = await AsyncStorage.getItem(MEDICAL_KEY);
+      let medData = medJson ? JSON.parse(medJson) : {};
+
+      // 3. Merge: medical card local edits override profile defaults
+      setBloodGroup(medData.bloodGroup || userData.bloodGroup || '');
+      setAllergies(medData.allergies || userData.allergies || '');
+      setMedicalConditions(medData.medicalConditions || 'None');
+      setEmergencyPhone(medData.emergencyPhone || userData.phone || '');
     } catch {}
   };
 
   const handleSave = async () => {
     try {
       const payload = { bloodGroup, allergies, medicalConditions, emergencyPhone };
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      await AsyncStorage.setItem(MEDICAL_KEY, JSON.stringify(payload));
+
+      // Also sync blood group and allergies back into the main user profile
+      const userJson = await AsyncStorage.getItem(USER_DATA_KEY);
+      const userData = userJson ? JSON.parse(userJson) : {};
+      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify({
+        ...userData,
+        bloodGroup,
+        allergies,
+      }));
+
       setIsEditing(false);
-      Alert.alert('Saved', 'Emergency Medical Pass updated successfully.');
+      Alert.alert('Saved ✅', 'Emergency Medical Pass updated successfully.');
     } catch {}
   };
 

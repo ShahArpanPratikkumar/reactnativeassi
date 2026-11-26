@@ -26,6 +26,8 @@ import { useTheme } from '../../context/ThemeContext';
 import { useUser, getInitials, DEFAULT_AVATAR } from '../../context/UserContext';
 import { isEmpty } from '../../utils/validation';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 const TRAVEL_AVATAR_PRESETS = [
   { id: 'explorer', label: 'Explorer', uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80' },
@@ -200,7 +202,26 @@ export default function ProfileScreen() {
       emergencyNotes: newEmergencyNotes,
     });
 
-    // Step 3: Update local user state immediately
+    // Step 3: Also write full merged record to SecureStore so next cold read is fresh
+    try {
+      const json = await AsyncStorage.getItem('userData');
+      const existing = json ? JSON.parse(json) : {};
+      const merged = {
+        ...existing,
+        name: newName,
+        phone: newPhone,
+        bloodGroup: newBloodGroup,
+        allergies: newAllergies,
+        emergencyNotes: newEmergencyNotes,
+      };
+      const serialized = JSON.stringify(merged);
+      await AsyncStorage.setItem('userData', serialized);
+      if (Platform.OS !== 'web') {
+        try { await SecureStore.setItemAsync('tg_secure_user_data', serialized); } catch {}
+      }
+    } catch {}
+
+    // Step 4: Update local user state immediately
     const updatedUser = {
       ...user,
       name: newName,
@@ -211,18 +232,18 @@ export default function ProfileScreen() {
     };
     setUser(updatedUser);
 
-    // Step 4: Close modal instantly — don't wait for backend
+    // Step 5: Close modal instantly — don't wait for backend
     setEditProfileModal(false);
     setSavingProfile(false);
     Alert.alert('Profile Updated! 👤', 'Your profile has been saved.');
 
-    // Step 5: Sync to backend in background (non-blocking)
+    // Step 6: Sync to backend in background (non-blocking)
     updateUserProfile({
       name: newName,
-      phone: formPhone.trim(),
-      bloodGroup: formBloodGroup.trim(),
-      allergies: formAllergies.trim(),
-      emergencyNotes: formEmergencyNotes.trim(),
+      phone: newPhone,
+      bloodGroup: newBloodGroup,
+      allergies: newAllergies,
+      emergencyNotes: newEmergencyNotes,
     }).catch((err) => {
       if (typeof __DEV__ !== 'undefined' && __DEV__) {
         console.log('Profile backend sync error:', err.message);

@@ -1,10 +1,3 @@
-// Travel Guardian - Guardian SafeWalk & Stealth Shield Suite
-// Features:
-// 1. SafeWalk Journey Timer (Dead-Man's Switch with countdown & SOS trigger)
-// 2. Stealth Fake Incoming Call Simulator (Escape tool for uncomfortable situations)
-// 3. Tactical Strobe Beacon (Visual night SOS distress signaling)
-// 4. Global Emergency Directory & Scam Radar with multi-language emergency cards
-
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -18,11 +11,16 @@ import {
   TextInput,
   Platform,
   Linking,
+  AppState,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from 'expo-audio';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import colors from '../constants/colors';
 import { useTheme } from '../context/ThemeContext';
+
+const SAFEWALK_START_KEY = '@tg_safewalk_start_ts';
+const SAFEWALK_DURATION_KEY = '@tg_safewalk_duration_secs';
 
 export default function SafeWalkModal({ visible, onClose, currentLocation, currentAddress, onTriggerSOS }) {
   const { theme, isDarkMode } = useTheme();
@@ -39,11 +37,75 @@ export default function SafeWalkModal({ visible, onClose, currentLocation, curre
   const [remainingSeconds, setRemainingSeconds] = useState(600);
   const [safeWalkAlarmTriggered, setSafeWalkAlarmTriggered] = useState(false);
   const timerRef = useRef(null);
+  const appStateRef = useRef(AppState.currentState);
 
   // Siren audio player for dead-man alarm
   const sirenPlayer = useAudioPlayer(require('../assets/siren.wav'));
 
-  // Countdown effect
+  // Persist start timestamp to AsyncStorage so we can survive app backgrounding
+  const persistTimerStart = async (startTs, durationSecs) => {
+    try {
+      await AsyncStorage.setItem(SAFEWALK_START_KEY, String(startTs));
+      await AsyncStorage.setItem(SAFEWALK_DURATION_KEY, String(durationSecs));
+    } catch {}
+  };
+
+  const clearPersistedTimer = async () => {
+    try {
+      await AsyncStorage.removeItem(SAFEWALK_START_KEY);
+      await AsyncStorage.removeItem(SAFEWALK_DURATION_KEY);
+    } catch {}
+  };
+
+  // Recompute remaining time from wall-clock when app returns to foreground
+  const syncTimerFromTimestamp = async () => {
+    try {
+      const startTsStr = await AsyncStorage.getItem(SAFEWALK_START_KEY);
+      const durationStr = await AsyncStorage.getItem(SAFEWALK_DURATION_KEY);
+      if (!startTsStr || !durationStr) return;
+
+      const startTs = parseInt(startTsStr, 10);
+      const totalDuration = parseInt(durationStr, 10);
+      const elapsed = Math.floor((Date.now() - startTs) / 1000);
+      const remaining = totalDuration - elapsed;
+
+      if (remaining <= 0) {
+        // Timer has expired while in background
+        setRemainingSeconds(0);
+        setSafeWalkActive(true); // keep active so the alarm fires
+        clearPersistedTimer();
+        handleSafeWalkExpired();
+      } else {
+        setRemainingSeconds(remaining);
+      }
+    } catch {}
+  };
+
+  // AppState listener: when app comes back to foreground, resync timer
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (appStateRef.current.match(/inactive|background/) && nextState === 'active') {
+        // App came back to foreground
+        if (safeWalkActive) {
+          syncTimerFromTimestamp();
+        }
+      }
+      appStateRef.current = nextState;
+    });
+
+    // On modal mount: check if a timer was running before (e.g. app was killed then reopened)
+    if (visible) {
+      syncTimerFromTimestamp().then(() => {
+        AsyncStorage.getItem(SAFEWALK_START_KEY).then((val) => {
+          if (val) setSafeWalkActive(true);
+        });
+      });
+    }
+
+    return () => subscription.remove();
+  }, [visible, safeWalkActive]);
+
+  // Countdown effect — 1-second interval, only drives UI; real truth is the timestamp
   useEffect(() => {
     if (safeWalkActive && remainingSeconds > 0) {
       timerRef.current = setInterval(() => {
@@ -67,10 +129,12 @@ export default function SafeWalkModal({ visible, onClose, currentLocation, curre
 
   const handleStartSafeWalk = (mins) => {
     const totalSecs = mins * 60;
+    const startTs = Date.now();
     setSelectedMinutes(mins);
     setRemainingSeconds(totalSecs);
     setSafeWalkActive(true);
     setSafeWalkAlarmTriggered(false);
+    persistTimerStart(startTs, totalSecs);
     Vibration.vibrate(200);
   };
 
@@ -78,6 +142,7 @@ export default function SafeWalkModal({ visible, onClose, currentLocation, curre
     if (timerRef.current) clearInterval(timerRef.current);
     setSafeWalkActive(false);
     setSafeWalkAlarmTriggered(false);
+    clearPersistedTimer();
     try {
       if (sirenPlayer) sirenPlayer.pause();
     } catch {}
@@ -86,6 +151,7 @@ export default function SafeWalkModal({ visible, onClose, currentLocation, curre
 
   const handleSafeWalkExpired = () => {
     setSafeWalkAlarmTriggered(true);
+    clearPersistedTimer();
     Vibration.vibrate([0, 500, 200, 500], true);
     try {
       if (sirenPlayer) {
