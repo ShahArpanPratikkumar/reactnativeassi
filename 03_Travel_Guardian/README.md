@@ -1,50 +1,76 @@
-# Welcome to your Expo app 👋
+# Travel Guardian 🛡️
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern mobile travel safety application built with React Native and Expo. Travel Guardian provides real-time emergency readiness, offline safety tools, secure media vaulting, itinerary tracking, and nearby safety zones for travelers.
 
-## Get started
+---
 
-1. Install dependencies
+## Features
 
-   ```bash
-   npm install
-   ```
+- **Emergency SOS Response**: One-tap emergency distress siren with auto-looping audio, native emergency contact dialer, and live GPS broadcast.
+- **Live Safety Map & Nearby Places**: Real-time OpenStreetMap Overpass queries showing nearby hospitals, police stations, pharmacies, and fire stations with true GPS distances and navigation directions.
+- **Live Location Tracking**: Accurate device location monitoring with reverse geocoding, coordinates display, and native share sheet integration.
+- **Camera & Media Vault**: Rapid photo and evidence video recording with in-app playback, local encrypted AsyncStorage vault, and device gallery export.
+- **Emergency Contacts**: Device phonebook integration, custom emergency contacts management, primary SOS contact selection, and direct native phone dialer launching.
+- **Travel Documents**: Categorized document storage with camera scanning, PDF/image viewing, search filtering, and offline local cache.
+- **Travel Status & Vehicle Selection**: Active trip tracking with 10 vehicle modes (Car, Bike, Bus, Train, Flight, Taxi, Walking, Bicycle, Auto Rickshaw, Other).
+- **Local Travel Reminders**: Device notifications for scheduled itinerary checkpoints and safety reminders.
+- **Theme Support**: Seamless light and modern navy dark theme switching with persistent storage.
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## Tech Stack
 
-In the output, you'll find options to open the app in a
+- **Frontend**: React Native 0.88, Expo SDK 58, Expo Router (file-based navigation)
+- **Maps & Location**: `react-native-maps`, `expo-location`, OpenStreetMap Overpass API
+- **Media & Audio**: `expo-camera`, `expo-video`, `expo-audio`, `expo-media-library`
+- **Storage**: `@react-native-async-storage/async-storage`, `expo-secure-store`
+- **Backend**: Node.js, Express.js, MongoDB (Mongoose), JWT Authentication
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Project Structure
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```text
+TravelGuardian/
+├── app/                    # Expo Router file-based routes
+│   ├── (auth)/             # Login and registration screens
+│   ├── (tabs)/             # Main tab navigation (Home, Map, Camera, Contacts, Profile)
+│   ├── documents/          # Travel documents and document scanner
+│   ├── media/              # Media evidence vault and player
+│   ├── sos/                # Emergency response and siren screen
+│   └── trips/              # Itinerary planning, vehicle selection, and details
+├── components/             # Reusable UI components
+│   ├── common/             # Buttons, headers, loaders, empty states, toasts
+│   ├── camera/             # Media items and video player
+│   └── contacts/           # Contact item cards
+├── constants/              # Centralized colors, vehicles, and app configuration
+├── context/                # React Context (ThemeContext, UserContext)
+├── hooks/                  # Custom hooks (useLocation, useTheme)
+├── services/               # API, auth, trips, places, and vault services
+├── utils/                  # Reusable utilities (phone dialer, location, validation, storage)
+├── backend/                # Express & MongoDB REST API server
+└── assets/                 # App icons, splash images, and audio siren
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## Getting Started
 
-To learn more about developing your project with Expo, look at the following resources:
+### 1. Prerequisites
+- Node.js (v18 or higher)
+- Expo Go app on iOS/Android or an emulator
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### 2. Backend Setup
+```bash
+cd backend
+npm install
+npm start
+```
+The server will start on `http://localhost:5000` (or `http://YOUR_LOCAL_IP:5000`).
 
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### 3. Frontend Setup
+```bash
+npm install
+npx expo start
+```
+Scan the QR code with your mobile device (via Expo Go) or press `a` for Android Emulator / `i` for iOS Simulator.

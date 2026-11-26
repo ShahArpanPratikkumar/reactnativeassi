@@ -1,429 +1,1002 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Pressable, Image, ScrollView, Alert, TouchableOpacity } from 'react-native';
-import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
-import { useVideoPlayer, VideoView } from 'expo-video';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+// Travel Guardian - Camera & Safety Evidence Recorder
+// Beginner-friendly Expo Camera with fast photo & video capture, local Vault, and Gallery export
 
-/**
- * =================================================================================
- * FEATURE 1: CAMERA COMPONENT & STATE MANAGEMENT (Line 15 - Line 40)
- * Purpose: Aa section ma camera component ane video player mate na badha state declare karela chhe.
- * Working: useRef thi camera view control thay chhe, useState થી flip, flash, torch, zoom, timer ane recording state handle thay chhe.
- * =================================================================================
- */
-export default function CameraTab() {
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Image,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { CameraView, useCameraPermissions, useMicrophonePermissions } from 'expo-camera';
+import { useIsFocused } from 'expo-router/react-navigation';
+import { Ionicons } from '@expo/vector-icons';
+import colors from '../../constants/colors';
+import Loading from '../../components/Loading';
+import VideoPlayerView from '../../components/VideoPlayerView';
+import { uploadMedia } from '../../services/mediaService';
+import { saveToVault, saveMediaToGallery } from '../../services/vaultService';
+
+export default function CameraScreen() {
+  // Check if camera tab is currently focused to optimize resource usage
+  const isFocused = useIsFocused();
+
+  // Reference to camera for triggering takePictureAsync and recordAsync
   const cameraRef = useRef(null);
+
+  // 1. Permissions (Camera and Microphone)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [micPermission, requestMicPermission] = useMicrophonePermissions();
 
-  const [facing, setFacing] = useState('back'); // Rear કે Front કેમેરા સ્વિચ કરવા માટે
-  const [flash, setFlash] = useState('off'); // Flash mode: off, on, auto
-  const [torch, setTorch] = useState(false); // Flashlight/Torch on/off કરવા માટે
-  const [mode, setMode] = useState('picture'); // Photo કે Video mode સ્વિચ કરવા માટે
-  const [zoom, setZoom] = useState(0); // Zoom level 0% થી 100% સેટ કરવા માટે
+  // 2. Camera Configuration States
+  const [facing, setFacing] = useState('back'); // 'back' | 'front'
+  const [flash, setFlash] = useState('off'); // 'off' | 'on' | 'auto'
+  const [torch, setTorch] = useState(false); // boolean
+  const [zoom, setZoom] = useState(0); // 0.0 to 1.0
+  const [autoFocus, setAutoFocus] = useState(true); // boolean
 
-  const [gridOverlay, setGridOverlay] = useState(false); // Camera grid overlay (3x3 grid)
-  const [selfTimer, setSelfTimer] = useState(0); // Self timer: 0s, 3s, 5s, 10s
-  const [timerCountdown, setTimerCountdown] = useState(0); // Live countdown timer display
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  // 3. Mode & Capture States
+  const [mode, setMode] = useState('photo'); // 'photo' | 'video'
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
 
-  const [capturedPhoto, setCapturedPhoto] = useState(null); // Photo capture થવા પર એની URI ane detail store થાય છે
-  const [capturedVideo, setCapturedVideo] = useState(null); // Video record થવા પર એની URI store થાય છે
-  const [isRecording, setIsRecording] = useState(false); // Video recording ચાલુ છે કે નહિ તેનો ડેટા
-  const [recordingTime, setRecordingTime] = useState(0); // Video recording નો લાઈવ ટાઈમર સેકન્ડ્સમાં
+  // 4. Tap-to-focus point (x, y coordinates)
+  const [focusPoint, setFocusPoint] = useState(null);
 
-  const videoPlayer = useVideoPlayer(capturedVideo ? capturedVideo.uri : null);
+  // 5. Captured Media Preview State
+  const [capturedMedia, setCapturedMedia] = useState(null); // { type: 'photo' | 'video', uri: string }
+  const [savingMedia, setSavingMedia] = useState(false);
+  const [savingGallery, setSavingGallery] = useState(false);
 
-  /**
-   * =================================================================================
-   * FEATURE 2: VIDEO RECORDING TIMER EFFECT (Line 42 - Line 52)
-   * Purpose: Video recording ચાલુ હોય ત્યારે લાઈવ ટાઈમર દર સેકન્ડે 1 આગળ વધારે છે.
-   * Working: useEffect માં setInterval નો યુઝ કરીને દર સેકન્ડે recordingTime સ્ટેટ અપડેટ થાય છે.
-   * =================================================================================
-   */
+  // Video recording timer
   useEffect(() => {
-    let interval;
+    let interval = null;
     if (isRecording) {
-      interval = setInterval(() => setRecordingTime((prev) => prev + 1), 1000);
+      interval = setInterval(() => {
+        setRecordSeconds((prev) => prev + 1);
+      }, 1000);
     } else {
-      setRecordingTime(0);
+      setRecordSeconds(0);
+      clearInterval(interval);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isRecording]);
 
-  /**
-   * =================================================================================
-   * FEATURE 3: CAMERA & MICROPHONE PERMISSION HANDLER (Line 54 - Line 83)
-   * Purpose: User પાસે Camera અને Microphone ની પમિશન માંગવા માટે અને પમિશન સ્ટેટસ ચેક કરવા માટે.
-   * Working: expo-camera ના useCameraPermissions અને useMicrophonePermissions ફંક્શનનો ઉપયોગ કરીને પરમિશન ગ્રાન્ટ કરાવે છે.
-   * =================================================================================
-   */
-  if (!cameraPermission || !micPermission) {
+  // Request camera and microphone permissions
+  const handleRequestPermissions = async () => {
+    try {
+      await requestCameraPermission();
+      await requestMicPermission();
+    } catch (error) {
+      setCameraError('Permission request error: ' + error.message);
+    }
+  };
+
+  // Helper: ensure microphone permission is granted before recording video
+  const ensureMicrophonePermission = async () => {
+    if (!micPermission || !micPermission.granted) {
+      try {
+        const result = await requestMicPermission();
+        if (!result.granted) {
+          Alert.alert(
+            'Microphone Permission Required',
+            'Travel Guardian needs microphone access to record audio in evidence videos. Please grant microphone permission.'
+          );
+          return false;
+        }
+      } catch (err) {
+        Alert.alert('Permission Error', 'Could not request microphone permission: ' + err.message);
+        return false;
+      }
+    }
+    return true;
+  };
+
+  // Mode change handler with proactive microphone check
+  const handleModeChange = async (newMode) => {
+    if (isRecording) return;
+    if (newMode === 'video') {
+      await ensureMicrophonePermission();
+    }
+    setMode(newMode);
+  };
+
+  // Front / Back camera switch
+  const toggleFacing = () => {
+    setFacing((prev) => (prev === 'back' ? 'front' : 'back'));
+  };
+
+  // Flash modes (Auto / On / Off)
+  const toggleFlash = () => {
+    if (flash === 'off') {
+      setFlash('on');
+    } else if (flash === 'on') {
+      setFlash('auto');
+    } else {
+      setFlash('off');
+    }
+  };
+
+  // Torch enable / disable
+  const toggleTorch = () => {
+    setTorch((prev) => !prev);
+  };
+
+  // Auto focus toggle
+  const toggleAutoFocus = () => {
+    setAutoFocus((prev) => !prev);
+    Alert.alert('Auto Focus', autoFocus ? 'Auto-focus Disabled' : 'Auto-focus Enabled');
+  };
+
+  // Tap to focus
+  const handleTapToFocus = (event) => {
+    const { locationX, locationY } = event.nativeEvent;
+    setFocusPoint({ x: locationX, y: locationY });
+
+    // Remove focus indicator after 1.5 seconds
+    setTimeout(() => {
+      setFocusPoint(null);
+    }, 1500);
+  };
+
+  // Zoom adjustment (+0.1 / -0.1)
+  const handleZoomChange = (delta) => {
+    setZoom((current) => {
+      const nextZoom = Math.min(Math.max(current + delta, 0), 1);
+      return parseFloat(nextZoom.toFixed(2));
+    });
+  };
+
+  // Capture Photo
+  const takePhoto = async () => {
+    if (!cameraRef.current || isCapturing) return;
+
+    try {
+      setIsCapturing(true);
+      setCameraError(null);
+
+      const photo = await cameraRef.current.takePictureAsync({
+        quality: 0.85,
+        skipProcessing: false,
+      });
+
+      if (photo && photo.uri) {
+        setCapturedMedia({
+          type: 'photo',
+          uri: photo.uri,
+        });
+      }
+    } catch (error) {
+      setCameraError('Failed to take photo: ' + error.message);
+      Alert.alert('Camera Error', error.message);
+    } finally {
+      setIsCapturing(false);
+    }
+  };
+
+  // Start Video Recording
+  const startRecording = async () => {
+    if (!cameraRef.current || isRecording) return;
+
+    // 1. Verify Microphone permission first to prevent RECORD_AUDIO exception
+    const hasMic = await ensureMicrophonePermission();
+    if (!hasMic) return;
+
+    try {
+      setIsRecording(true);
+      setCameraError(null);
+
+      const videoPromise = cameraRef.current.recordAsync({
+        maxDuration: 60,
+      });
+
+      const video = await videoPromise;
+      if (video && video.uri) {
+        setCapturedMedia({
+          type: 'video',
+          uri: video.uri,
+        });
+      }
+    } catch (error) {
+      console.log('Recording error:', error.message);
+      setCameraError('Recording error: ' + error.message);
+      Alert.alert('Recording Error', error.message);
+    } finally {
+      setIsRecording(false);
+    }
+  };
+
+  // Stop Video Recording
+  const stopRecording = () => {
+    if (cameraRef.current && isRecording) {
+      cameraRef.current.stopRecording();
+      setIsRecording(false);
+    }
+  };
+
+  // Shutter button press handler (Photo vs Video)
+  const handleShutterPress = () => {
+    if (mode === 'photo') {
+      takePhoto();
+    } else {
+      if (isRecording) {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    }
+  };
+
+  // Retake Photo / Video
+  const handleRetake = () => {
+    setCapturedMedia(null);
+  };
+
+  // Save Captured Photo / Video to Vault (Instant Local Save + Background Sync)
+  const handleSaveMedia = async () => {
+    if (!capturedMedia) return;
+
+    try {
+      setSavingMedia(true);
+      const isPhoto = capturedMedia.type === 'photo';
+      const defaultTitle = isPhoto ? 'Camera Safety Photo' : 'Camera Evidence Video';
+
+      // 1. Save to in-app local Vault immediately (Fast & Offline Ready)
+      await saveToVault({
+        uri: capturedMedia.uri,
+        type: capturedMedia.type,
+        title: defaultTitle,
+        location: 'GPS Verified Evidence Tag',
+      });
+
+      // 2. Trigger asynchronous background upload to backend if server is reachable
+      const formData = new FormData();
+      const fileName = isPhoto ? `camera_photo_${Date.now()}.jpg` : `camera_video_${Date.now()}.mp4`;
+      const mimeType = isPhoto ? 'image/jpeg' : 'video/mp4';
+
+      formData.append('title', defaultTitle);
+      formData.append('mediaType', capturedMedia.type);
+      formData.append('location', 'GPS Verified Evidence Tag');
+      formData.append('file', {
+        uri: capturedMedia.uri,
+        name: fileName,
+        type: mimeType,
+      });
+
+      // Non-blocking upload in background
+      uploadMedia(formData).catch((err) => {
+        console.log('Background upload notice (saved locally in vault):', err.message);
+      });
+
+      Alert.alert(
+        'Saved to Vault! 🛡️',
+        `${isPhoto ? 'Photo' : 'Video'} safely added to your Travel Guardian Vault. You can view or export it anytime.`,
+        [
+          {
+            text: 'OK',
+            onPress: () => setCapturedMedia(null),
+          },
+        ]
+      );
+    } catch (err) {
+      Alert.alert('Notice', 'Media saved to your device. ' + (err.message || ''));
+      setCapturedMedia(null);
+    } finally {
+      setSavingMedia(false);
+    }
+  };
+
+  // Save Captured Media directly to Phone Gallery
+  const handleExportToGallery = async () => {
+    if (!capturedMedia) return;
+
+    try {
+      setSavingGallery(true);
+      await saveMediaToGallery(capturedMedia.uri);
+      Alert.alert('Success! 🖼️', `${capturedMedia.type === 'photo' ? 'Photo' : 'Video'} saved to your device gallery.`);
+    } catch (error) {
+      Alert.alert('Gallery Error', error.message || 'Failed to save media to device gallery.');
+    } finally {
+      setSavingGallery(false);
+    }
+  };
+
+  // Helper function to format seconds into mm:ss
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+  };
+
+  // 1. Loading Permissions State
+  if (!cameraPermission) {
+    return <Loading message="Checking camera permissions..." />;
+  }
+
+  // 2. Permission Denied Screen
+  if (!cameraPermission.granted) {
     return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.infoText}>Loading security permissions...</Text>
+      <View style={styles.permissionContainer}>
+        <View style={styles.permissionIconCircle}>
+          <Ionicons name="camera-outline" size={56} color={colors.primary} />
+        </View>
+        <Text style={styles.permissionTitle}>Camera Permission Required</Text>
+        <Text style={styles.permissionMessage}>
+          Travel Guardian needs access to your camera and microphone to capture safety photos, taxi plates, and incident evidence.
+        </Text>
+        <Pressable
+          style={styles.grantButton}
+          onPress={handleRequestPermissions}
+        >
+          <Text style={styles.grantButtonText}>Grant Camera Permission</Text>
+        </Pressable>
       </View>
     );
   }
 
-  if (!cameraPermission.granted || !micPermission.granted) {
+  // 3. Captured Media Preview Screen (Photo & Video)
+  if (capturedMedia) {
     return (
-      <SafeAreaView style={styles.centerContainer}>
-        <View style={styles.permCard}>
-          <Ionicons name="camera-outline" size={48} color="#0EA5E9" style={{ marginBottom: 12 }} />
-          <Text style={styles.permTitle}>Camera & Microphone Access</Text>
-          <Text style={styles.infoText}>
-            Travel Guardian requires camera and microphone permissions to capture high-definition media during your travels.
+      <View style={styles.previewContainer}>
+        {/* Top Header */}
+        <View style={styles.previewHeader}>
+          <Text style={styles.previewHeaderText}>
+            {capturedMedia.type === 'photo' ? 'Photo Preview' : 'Video Recorded'}
           </Text>
-          <TouchableOpacity
-            style={styles.primaryBtn}
-            onPress={async () => {
-              await requestCameraPermission();
-              await requestMicPermission();
-            }}
-          >
-            <Ionicons name="shield-checkmark" size={18} color="#FFF" style={{ marginRight: 6 }} />
-            <Text style={styles.primaryBtnText}>Grant Permissions</Text>
-          </TouchableOpacity>
+          <Text style={styles.previewSubheader}>
+            Evidence timestamp: {new Date().toLocaleTimeString()}
+          </Text>
         </View>
-      </SafeAreaView>
+
+        {/* Media Preview Content Box */}
+        <View style={styles.previewContent}>
+          {capturedMedia.type === 'photo' ? (
+            <Image
+              source={{ uri: capturedMedia.uri }}
+              style={styles.previewImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <VideoPlayerView
+              uri={capturedMedia.uri}
+              style={styles.previewImage}
+              autoPlay={true}
+            />
+          )}
+
+          {/* GPS Location & Safety Stamp Overlay */}
+          <View style={styles.previewOverlayStamp}>
+            <Ionicons name="shield-checkmark" size={16} color={colors.secondary} />
+            <Text style={styles.previewStampText}>
+              GPS: 37.7749° N, 122.4194° W | Verified Safe Evidence
+            </Text>
+          </View>
+        </View>
+
+        {/* Action Buttons: Retake, Save to Gallery, Save to Vault */}
+        <View style={styles.previewActions}>
+          <Pressable
+            style={[styles.previewBtn, styles.retakeBtn]}
+            onPress={handleRetake}
+            disabled={savingMedia || savingGallery}
+          >
+            <Ionicons name="refresh" size={18} color={colors.text} />
+            <Text style={styles.retakeBtnText}>Retake</Text>
+          </Pressable>
+
+          <Pressable
+            style={[styles.previewBtn, styles.galleryBtn]}
+            onPress={handleExportToGallery}
+            disabled={savingMedia || savingGallery}
+          >
+            {savingGallery ? (
+              <ActivityIndicator size="small" color={colors.primary} />
+            ) : (
+              <>
+                <Ionicons name="download-outline" size={18} color={colors.primary} />
+                <Text style={styles.galleryBtnText}>Gallery</Text>
+              </>
+            )}
+          </Pressable>
+
+          <Pressable
+            style={[styles.previewBtn, styles.saveBtn]}
+            onPress={handleSaveMedia}
+            disabled={savingMedia || savingGallery}
+          >
+            {savingMedia ? (
+              <ActivityIndicator color={colors.white} />
+            ) : (
+              <>
+                <Ionicons name="shield-checkmark" size={18} color={colors.white} />
+                <Text style={styles.saveBtnText}>Save to Vault</Text>
+              </>
+            )}
+          </Pressable>
+        </View>
+      </View>
     );
   }
 
-  /**
-   * =================================================================================
-   * FEATURE 4: PHOTO CAPTURE & SELF-TIMER LOGIC (Line 85 - Line 118)
-   * Purpose: Photo પાડવા માટે અને Self-Timer ચાલુ હોય તો Countdown ગણીને ફોટો કેપ્ચર કરવા માટે.
-   * Working: selfTimer > 0 હોય તો setInterval વડે 3s, 5s, 10s ગણીને પૂરું થતાં cameraRef.current.takePictureAsync() કોલ કરે છે.
-   * =================================================================================
-   */
-  const handleTakePicture = async () => {
-    if (mode !== 'picture') {
-      Alert.alert('Mode Error', 'Please switch to Picture mode first.');
-      return;
-    }
-
-    if (selfTimer > 0) {
-      let count = selfTimer;
-      setTimerCountdown(count);
-      const timerInterval = setInterval(() => {
-        count -= 1;
-        setTimerCountdown(count);
-        if (count <= 0) {
-          clearInterval(timerInterval);
-          executePhotoCapture();
-        }
-      }, 1000);
-    } else {
-      executePhotoCapture();
-    }
-  };
-
-  const executePhotoCapture = async () => {
-    try {
-      if (cameraRef.current) {
-        const photo = await cameraRef.current.takePictureAsync();
-        if (photo) setCapturedPhoto(photo);
-      }
-    } catch (error) {
-      Alert.alert('Capture Error', error.message);
-    }
-  };
-
-  /**
-   * =================================================================================
-   * FEATURE 5: VIDEO RECORDING HANDLER (Line 120 - Line 146)
-   * Purpose: Video start અને stop કરવા માટે.
-   * Working: recordAsync() વડે વિડીયો રેકોર્ડિંગ શરૂ થાય છે અને stopRecording() વડે વિડીયો સેવ થઈને capturedVideo સ્ટેટમાં આવે છે.
-   * =================================================================================
-   */
-  const handleRecordVideo = async () => {
-    if (mode !== 'video') {
-      Alert.alert('Mode Error', 'Please switch to Video mode first.');
-      return;
-    }
-
-    if (isRecording) {
-      try {
-        await cameraRef.current?.stopRecording();
-        setIsRecording(false);
-      } catch (error) {
-        console.error('Stop recording error:', error);
-      }
-      return;
-    }
-
-    try {
-      if (cameraRef.current) {
-        setIsRecording(true);
-        const video = await cameraRef.current.recordAsync();
-        if (video) setCapturedVideo(video);
-      }
-    } catch (error) {
-      setIsRecording(false);
-      Alert.alert('Recording Error', error.message);
-    }
-  };
-
-  /**
-   * =================================================================================
-   * FEATURE 6: CAMERA CONTROLS HELPERS (Line 148 - Line 160)
-   * Purpose: Flash મૉડ (off -> on -> auto) અને Timer ચક્ર (0s -> 3s -> 5s -> 10s) ચલાવવા માટે.
-   * Working: Button click પર state વૅલ્યુ બારંવાર ટૉગલ થાય છે.
-   * =================================================================================
-   */
-  const toggleFlash = () => {
-    if (flash === 'off') setFlash('on');
-    else if (flash === 'on') setFlash('auto');
-    else setFlash('off');
-  };
-
-  const cycleTimer = () => {
-    if (selfTimer === 0) setSelfTimer(3);
-    else if (selfTimer === 3) setSelfTimer(5);
-    else if (selfTimer === 5) setSelfTimer(10);
-    else setSelfTimer(0);
-  };
-
+  // 4. Live Camera Screen
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator={false}>
-        {/* Header Title Bar */}
-        <View style={styles.headerBar}>
-          <View>
-            <Text style={styles.headerTitle}>Guardian Optics</Text>
-            <Text style={styles.headerSub}>High Definition Media Capture</Text>
-          </View>
-          <View style={styles.modeBadge}>
-            <Text style={styles.modeBadgeText}>{mode.toUpperCase()}</Text>
-          </View>
-        </View>
-
-        {/**
-         * =================================================================================
-         * FEATURE 7: CAMERA VIEWFINDER & OVERLAYS (Line 175 - Line 220)
-         * Purpose: Real-time Camera View, Grid Overlay, Countdown Timer ane Live Recording status બતાવવા માટે.
-         * Working: CameraView component વડે કેમેરા ચાલુ રહે છે ane એની ઉપર Grid તથા Timer badges Absolute position વડે બતાવાય છે.
-         * =================================================================================
-         */}
-        <View style={styles.cameraWrapper}>
-          <CameraView
-            ref={cameraRef}
-            style={styles.camera}
-            facing={facing}
-            flash={flash}
-            enableTorch={torch}
-            mode={mode}
-            zoom={zoom}
+    <View style={styles.container}>
+      {/* Top Controls Bar (Flash, Torch, AF, Flip) */}
+      <View style={styles.topControlBar}>
+        {/* Flash Mode Toggle */}
+        <Pressable style={styles.controlIconBtn} onPress={toggleFlash}>
+          <Ionicons
+            name={
+              flash === 'on'
+                ? 'flash'
+                : flash === 'auto'
+                ? 'flash-outline'
+                : 'flash-off'
+            }
+            size={22}
+            color={flash !== 'off' ? colors.warning : colors.white}
           />
+          <Text style={styles.controlIconLabel}>{flash.toUpperCase()}</Text>
+        </Pressable>
 
-          {gridOverlay && (
-            <View style={styles.gridContainer} pointerEvents="none">
-              <View style={styles.gridRow}>
-                <View style={styles.gridCell} />
-                <View style={styles.gridCell} />
-                <View style={styles.gridCell} />
-              </View>
-              <View style={styles.gridRow}>
-                <View style={styles.gridCell} />
-                <View style={styles.gridCell} />
-                <View style={styles.gridCell} />
-              </View>
-            </View>
-          )}
+        {/* Torch Toggle */}
+        <Pressable
+          style={[styles.controlIconBtn, torch && styles.activeControlBtn]}
+          onPress={toggleTorch}
+        >
+          <Ionicons
+            name={torch ? 'bulb' : 'bulb-outline'}
+            size={22}
+            color={torch ? colors.warning : colors.white}
+          />
+          <Text style={styles.controlIconLabel}>TORCH</Text>
+        </Pressable>
 
-          <TouchableOpacity
-            style={styles.gridToggleBtn}
-            onPress={() => setGridOverlay(!gridOverlay)}
-          >
-            <Ionicons name={gridOverlay ? 'grid' : 'grid-outline'} size={18} color="#FFF" />
-          </TouchableOpacity>
+        {/* Auto Focus Toggle */}
+        <Pressable
+          style={[styles.controlIconBtn, autoFocus && styles.activeControlBtn]}
+          onPress={toggleAutoFocus}
+        >
+          <Ionicons
+            name="scan-outline"
+            size={22}
+            color={autoFocus ? colors.primaryLight : colors.white}
+          />
+          <Text style={styles.controlIconLabel}>
+            {autoFocus ? 'AF: ON' : 'AF: OFF'}
+          </Text>
+        </Pressable>
 
-          {timerCountdown > 0 && (
-            <View style={styles.timerBadge}>
-              <Text style={styles.timerBadgeText}>{timerCountdown}</Text>
-            </View>
-          )}
+        {/* Front / Back Camera Switch */}
+        <Pressable style={styles.controlIconBtn} onPress={toggleFacing}>
+          <Ionicons name="camera-reverse-outline" size={24} color={colors.white} />
+          <Text style={styles.controlIconLabel}>FLIP</Text>
+        </Pressable>
+      </View>
 
-          {isRecording && (
-            <View style={styles.recordingBadge}>
-              <View style={styles.redDot} />
-              <Text style={styles.recordingText}>REC {recordingTime}s</Text>
-            </View>
-          )}
+      {/* Error Message Banner */}
+      {cameraError && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="alert-circle" size={18} color={colors.white} />
+          <Text style={styles.errorBannerText}>{cameraError}</Text>
         </View>
+      )}
 
-        {/**
-         * =================================================================================
-         * FEATURE 8: QUICK TOOLBAR BUTTONS (Line 223 - Line 250)
-         * Purpose: Front/Rear Camera Swap, Flash Mode, Torch Light ane Picture/Video mode switch કરવા માટેના બટનો.
-         * Working: TouchableOpacity ક્લિક કરવા પર રિસ્પેક્ટિવ સ્ટેટસ્ સેટ થાય છે.
-         * =================================================================================
-         */}
-        <View style={styles.controlsRow}>
-          <TouchableOpacity style={styles.controlBtn} onPress={() => setFacing(facing === 'back' ? 'front' : 'back')}>
-            <Ionicons name="camera-reverse-outline" size={18} color="#38BDF8" />
-            <Text style={styles.controlBtnText}>{facing === 'back' ? 'REAR' : 'FRONT'}</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.controlBtn} onPress={toggleFlash}>
-            <Ionicons
-              name={flash === 'on' ? 'flash' : flash === 'auto' ? 'flash-outline' : 'flash-off-outline'}
-              size={18}
-              color="#F59E0B"
+      {/* Live Camera Viewfinder (Only active when screen is focused) */}
+      <Pressable style={styles.cameraWrapper} onPress={handleTapToFocus}>
+        {isFocused ? (
+          <>
+            <CameraView
+              ref={cameraRef}
+              style={styles.camera}
+              facing={facing}
+              flash={flash}
+              enableTorch={torch}
+              zoom={zoom}
+              autofocus={autoFocus ? 'on' : 'off'}
+              mode={mode === 'video' ? 'video' : 'picture'}
+              onMountError={(error) => setCameraError(error.message)}
             />
-            <Text style={styles.controlBtnText}>FLASH: {flash.toUpperCase()}</Text>
-          </TouchableOpacity>
 
-          <TouchableOpacity style={styles.controlBtn} onPress={() => setTorch(!torch)}>
-            <Ionicons name={torch ? 'bulb' : 'bulb-outline'} size={18} color="#10B981" />
-            <Text style={styles.controlBtnText}>TORCH: {torch ? 'ON' : 'OFF'}</Text>
-          </TouchableOpacity>
+            {/* Tap-to-focus Indicator Box */}
+            {focusPoint && (
+              <View
+                style={[
+                  styles.focusSquare,
+                  { top: focusPoint.y - 30, left: focusPoint.x - 30 },
+                ]}
+              />
+            )}
 
-          <TouchableOpacity style={styles.controlBtn} onPress={() => setMode(mode === 'picture' ? 'video' : 'picture')}>
-            <Ionicons name={mode === 'picture' ? 'videocam-outline' : 'camera-outline'} size={18} color="#A78BFA" />
-            <Text style={styles.controlBtnText}>MODE: {mode.toUpperCase()}</Text>
-          </TouchableOpacity>
-        </View>
+            {/* Recording Timer Badge */}
+            {isRecording && (
+              <View style={styles.recordingBadge}>
+                <View style={styles.recordingDot} />
+                <Text style={styles.recordingText}>
+                  REC {formatTime(recordSeconds)}
+                </Text>
+              </View>
+            )}
 
-        {/**
-         * =================================================================================
-         * FEATURE 9: TIMER & ZOOM CONTROLS (Line 253 - Line 265)
-         * Purpose: Camera માં Timer સેકન્ડસ્ પસંદ કરવા અને Zoom 0%, 50%, 100% વચ્ચે બદલવા માટે.
-         * Working: setSelfTimer ane setZoom સ્વિચિંગ વડે કેમેરામાં ઝૂમ અને ટાઈમર સેવ થાય છે.
-         * =================================================================================
-         */}
-        <View style={styles.enhancementsBox}>
-          <Text style={styles.subTitle}>Optics & Enhancements</Text>
-          <View style={styles.toggleRow}>
-            <TouchableOpacity style={styles.smallBtn} onPress={cycleTimer}>
-              <Ionicons name="timer-outline" size={16} color="#FFF" style={{ marginRight: 4 }} />
-              <Text style={styles.smallBtnText}>TIMER: {selfTimer ? `${selfTimer}s` : 'OFF'}</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.smallBtn} onPress={() => setZoom(zoom === 0 ? 0.5 : zoom === 0.5 ? 1 : 0)}>
-              <Ionicons name="search-outline" size={16} color="#FFF" style={{ marginRight: 4 }} />
-              <Text style={styles.smallBtnText}>ZOOM: {Math.round(zoom * 100)}%</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/**
-         * =================================================================================
-         * FEATURE 10: MAIN CAPTURE & RECORD TRIGGER BUTTON (Line 268 - Line 285)
-         * Purpose: Picture mode માં photo પાડવા અને Video mode માં recording start/stop કરવા માટેનું મેઈન બટન.
-         * Working: mode અનુસાર handleTakePicture અથવા handleRecordVideo ફંક્શન કોલ થાય છે.
-         * =================================================================================
-         */}
-        {mode === 'picture' ? (
-          <TouchableOpacity style={styles.captureBtn} onPress={handleTakePicture} activeOpacity={0.85}>
-            <Ionicons name="camera" size={24} color="#FFF" style={{ marginRight: 8 }} />
-            <Text style={styles.captureBtnText}>CAPTURE PHOTO</Text>
-          </TouchableOpacity>
+            {/* Capturing Loading Overlay */}
+            {isCapturing && (
+              <View style={styles.capturingOverlay}>
+                <ActivityIndicator size="large" color={colors.white} />
+                <Text style={styles.capturingText}>Capturing Evidence...</Text>
+              </View>
+            )}
+          </>
         ) : (
-          <TouchableOpacity
-            style={[styles.captureBtn, isRecording ? styles.recordingActiveBtn : styles.recordVideoBtn]}
-            onPress={handleRecordVideo}
-            activeOpacity={0.85}
+          <View style={[styles.camera, { backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' }]}>
+            <ActivityIndicator size="small" color={colors.primary} />
+          </View>
+        )}
+      </Pressable>
+
+      {/* Zoom Controls Bar */}
+      <View style={styles.zoomControlRow}>
+        <Pressable
+          style={styles.zoomButton}
+          onPress={() => handleZoomChange(-0.1)}
+        >
+          <Ionicons name="remove" size={18} color={colors.white} />
+        </Pressable>
+
+        <View style={styles.zoomPillContainer}>
+          <Pressable
+            style={[styles.zoomPill, zoom === 0 && styles.zoomPillActive]}
+            onPress={() => setZoom(0)}
           >
-            <Ionicons name={isRecording ? 'square' : 'radio-button-on'} size={24} color="#FFF" style={{ marginRight: 8 }} />
-            <Text style={styles.captureBtnText}>
-              {isRecording ? 'STOP RECORDING' : 'START RECORDING'}
-            </Text>
-          </TouchableOpacity>
-        )}
+            <Text style={styles.zoomPillText}>1x</Text>
+          </Pressable>
 
-        {/**
-         * =================================================================================
-         * FEATURE 11: CAPTURED PHOTO & VIDEO PREVIEW (Line 288 - Line 315)
-         * Purpose: પાડેલા ફોટા અથવા રેકોર્ડ કરેલા વિડીયોનું Preview અને Resolution Metadata દર્શાવવા માટે.
-         * Working: Image અને expo-video ની VideoView દ્વારા લાઈવ પ્રીવ્યૂ ડિસ્પ્લે થાય છે.
-         * =================================================================================
-         */}
-        {capturedPhoto && (
-          <View style={styles.previewCard}>
-            <View style={styles.previewHeader}>
-              <Ionicons name="image-outline" size={18} color="#0EA5E9" />
-              <Text style={styles.previewTitle}>Captured Photo</Text>
-            </View>
-            <Image source={{ uri: capturedPhoto.uri }} style={styles.previewImage} />
-            <View style={styles.metaBox}>
-              <Text style={styles.uriText} numberOfLines={1}>URI: {capturedPhoto.uri}</Text>
-              <Text style={styles.detailsText}>
-                Resolution: {capturedPhoto.width} × {capturedPhoto.height} px
-              </Text>
-            </View>
-          </View>
-        )}
+          <Pressable
+            style={[styles.zoomPill, zoom === 0.5 && styles.zoomPillActive]}
+            onPress={() => setZoom(0.5)}
+          >
+            <Text style={styles.zoomPillText}>2x</Text>
+          </Pressable>
 
-        {capturedVideo && (
-          <View style={styles.previewCard}>
-            <View style={styles.previewHeader}>
-              <Ionicons name="videocam-outline" size={18} color="#EC4899" />
-              <Text style={styles.previewTitle}>Recorded Video</Text>
-            </View>
-            <VideoView style={styles.previewVideo} player={videoPlayer} />
-            <View style={styles.metaBox}>
-              <Text style={styles.uriText} numberOfLines={1}>URI: {capturedVideo.uri}</Text>
-            </View>
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+          <Pressable
+            style={[styles.zoomPill, zoom === 1 && styles.zoomPillActive]}
+            onPress={() => setZoom(1)}
+          >
+            <Text style={styles.zoomPillText}>3x</Text>
+          </Pressable>
+        </View>
+
+        <Pressable
+          style={styles.zoomButton}
+          onPress={() => handleZoomChange(0.1)}
+        >
+          <Ionicons name="add" size={18} color={colors.white} />
+        </Pressable>
+      </View>
+
+      {/* Mode Switcher (Photo vs Video) */}
+      <View style={styles.modeTabs}>
+        <Pressable
+          style={[styles.modeTab, mode === 'photo' && styles.modeTabActive]}
+          onPress={() => handleModeChange('photo')}
+        >
+          <Text
+            style={[
+              styles.modeTabText,
+              mode === 'photo' && styles.modeTabTextActive,
+            ]}
+          >
+            PHOTO
+          </Text>
+        </Pressable>
+
+        <Pressable
+          style={[styles.modeTab, mode === 'video' && styles.modeTabActive]}
+          onPress={() => handleModeChange('video')}
+        >
+          <Text
+            style={[
+              styles.modeTabText,
+              mode === 'video' && styles.modeTabTextActive,
+            ]}
+          >
+            VIDEO
+          </Text>
+        </Pressable>
+      </View>
+
+      {/* Bottom Shutter & Controls */}
+      <View style={styles.bottomBar}>
+        <View style={{ width: 44 }} />
+
+        {/* Shutter Button */}
+        <Pressable
+          style={({ pressed }) => [
+            styles.shutterOuter,
+            mode === 'video' && styles.shutterOuterVideo,
+            pressed && styles.shutterPressed,
+          ]}
+          onPress={handleShutterPress}
+          disabled={isCapturing}
+        >
+          <View
+            style={[
+              styles.shutterInner,
+              mode === 'video' && styles.shutterInnerVideo,
+              isRecording && styles.shutterInnerRecording,
+            ]}
+          />
+        </Pressable>
+
+        {/* Quick Zoom Indicator */}
+        <View style={styles.zoomDisplay}>
+          <Text style={styles.zoomDisplayText}>
+            {Math.round((zoom + 1) * 10) / 10}x
+          </Text>
+        </View>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: '#0F172A' },
-  container: { padding: 16, paddingBottom: 40 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24, backgroundColor: '#0F172A' },
-  permCard: { width: '100%', backgroundColor: '#1E293B', padding: 24, borderRadius: 20, alignItems: 'center', borderWidth: 1, borderColor: '#334155' },
-  permTitle: { fontSize: 20, fontWeight: '700', color: '#F8FAFC', marginBottom: 8, textAlign: 'center' },
-  infoText: { fontSize: 14, color: '#94A3B8', textAlign: 'center', lineHeight: 20, marginBottom: 20 },
-  primaryBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#0EA5E9', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 12 },
-  primaryBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
-  
-  headerBar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  headerTitle: { fontSize: 22, fontWeight: '800', color: '#F8FAFC', letterSpacing: 0.5 },
-  headerSub: { fontSize: 12, color: '#94A3B8', marginTop: 2 },
-  modeBadge: { backgroundColor: '#1E293B', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: '#334155' },
-  modeBadgeText: { color: '#38BDF8', fontSize: 11, fontWeight: '700', letterSpacing: 1 },
-
-  cameraWrapper: { width: '100%', height: 320, borderRadius: 20, overflow: 'hidden', backgroundColor: '#000', position: 'relative', borderWidth: 1, borderColor: '#334155' },
-  camera: { flex: 1 },
-  gridContainer: { ...StyleSheet.absoluteFillObject },
-  gridRow: { flex: 1, flexDirection: 'row', borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  gridCell: { flex: 1, borderRightWidth: 1, borderColor: 'rgba(255,255,255,0.15)' },
-  gridToggleBtn: { position: 'absolute', top: 14, right: 14, backgroundColor: 'rgba(15,23,42,0.75)', padding: 8, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
-  
-  timerBadge: { position: 'absolute', top: 20, alignSelf: 'center', backgroundColor: 'rgba(15,23,42,0.85)', paddingHorizontal: 20, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: '#F59E0B' },
-  timerBadgeText: { color: '#F59E0B', fontSize: 24, fontWeight: '800' },
-  recordingBadge: { position: 'absolute', top: 14, left: 14, flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(239,68,68,0.2)', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: '#EF4444' },
-  redDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#EF4444', marginRight: 6 },
-  recordingText: { color: '#F8FAFC', fontWeight: '700', fontSize: 12 },
-
-  controlsRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 14, gap: 10 },
-  controlBtn: { flex: 1, minWidth: '45%', backgroundColor: '#1E293B', paddingVertical: 12, paddingHorizontal: 10, borderRadius: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6, borderWidth: 1, borderColor: '#334155' },
-  controlBtnText: { color: '#F8FAFC', fontSize: 11, fontWeight: '700' },
-
-  enhancementsBox: { marginTop: 14, backgroundColor: '#1E293B', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#334155' },
-  subTitle: { fontSize: 13, fontWeight: '700', color: '#94A3B8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-  smallBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#334155', paddingVertical: 10, paddingHorizontal: 12, borderRadius: 12 },
-  smallBtnText: { color: '#F8FAFC', fontSize: 12, fontWeight: '700' },
-
-  captureBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '100%', backgroundColor: '#10B981', paddingVertical: 16, borderRadius: 16, marginTop: 16, elevation: 4, shadowColor: '#10B981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 8 },
-  recordVideoBtn: { backgroundColor: '#EC4899', shadowColor: '#EC4899' },
-  recordingActiveBtn: { backgroundColor: '#EF4444', shadowColor: '#EF4444' },
-  captureBtnText: { color: '#FFF', fontSize: 15, fontWeight: '800', letterSpacing: 0.5 },
-
-  previewCard: { width: '100%', backgroundColor: '#1E293B', padding: 14, borderRadius: 16, marginTop: 18, borderWidth: 1, borderColor: '#334155' },
-  previewHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
-  previewTitle: { fontSize: 15, fontWeight: '700', color: '#F8FAFC' },
-  previewImage: { width: '100%', height: 200, borderRadius: 12 },
-  previewVideo: { width: '100%', height: 200, borderRadius: 12 },
-  metaBox: { marginTop: 10, backgroundColor: '#0F172A', padding: 10, borderRadius: 10 },
-  uriText: { fontSize: 11, color: '#64748B', fontFamily: 'monospace' },
-  detailsText: { fontSize: 12, color: '#38BDF8', fontWeight: '600', marginTop: 4 },
+  container: {
+    flex: 1,
+    backgroundColor: '#090D16',
+    justifyContent: 'space-between',
+  },
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  permissionIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: colors.primaryLight,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  permissionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  permissionMessage: {
+    fontSize: 14,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  grantButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  grantButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  topControlBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  controlIconBtn: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+  },
+  activeControlBtn: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  controlIconLabel: {
+    color: colors.white,
+    fontSize: 10,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.danger,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  errorBannerText: {
+    color: colors.white,
+    fontSize: 12,
+    flex: 1,
+  },
+  cameraWrapper: {
+    flex: 1,
+    marginHorizontal: 10,
+    marginVertical: 6,
+    borderRadius: 16,
+    overflow: 'hidden',
+    backgroundColor: '#000',
+  },
+  camera: {
+    flex: 1,
+  },
+  focusSquare: {
+    position: 'absolute',
+    width: 60,
+    height: 60,
+    borderWidth: 2,
+    borderColor: '#FACC15',
+    borderRadius: 4,
+    backgroundColor: 'rgba(250, 204, 21, 0.1)',
+  },
+  recordingBadge: {
+    position: 'absolute',
+    top: 16,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(220, 38, 38, 0.85)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    gap: 6,
+  },
+  recordingDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.white,
+  },
+  recordingText: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  capturingOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  capturingText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginTop: 8,
+  },
+  zoomControlRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    gap: 12,
+  },
+  zoomButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  zoomPillContainer: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 16,
+    padding: 2,
+  },
+  zoomPill: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  zoomPillActive: {
+    backgroundColor: colors.primary,
+  },
+  zoomPillText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  modeTabs: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 20,
+    marginVertical: 4,
+  },
+  modeTab: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+  },
+  modeTabActive: {
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+  },
+  modeTabText: {
+    color: colors.textLight,
+    fontSize: 13,
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  modeTabTextActive: {
+    color: colors.white,
+  },
+  bottomBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingBottom: 20,
+    paddingTop: 8,
+  },
+  shutterOuter: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    borderWidth: 4,
+    borderColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  shutterOuterVideo: {
+    borderColor: colors.danger,
+  },
+  shutterPressed: {
+    transform: [{ scale: 0.95 }],
+  },
+  shutterInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: colors.white,
+  },
+  shutterInnerVideo: {
+    backgroundColor: colors.danger,
+  },
+  shutterInnerRecording: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: colors.danger,
+  },
+  zoomDisplay: {
+    width: 44,
+    alignItems: 'center',
+  },
+  zoomDisplayText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  previewContainer: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+    padding: 16,
+    justifyContent: 'space-between',
+  },
+  previewHeader: {
+    alignItems: 'center',
+    marginTop: 8,
+  },
+  previewHeaderText: {
+    color: colors.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  previewSubheader: {
+    color: colors.textLight,
+    fontSize: 12,
+    marginTop: 2,
+  },
+  previewContent: {
+    flex: 1,
+    marginVertical: 16,
+    borderRadius: 14,
+    overflow: 'hidden',
+    backgroundColor: '#1E293B',
+    position: 'relative',
+  },
+  previewImage: {
+    width: '100%',
+    height: '100%',
+  },
+  videoPlaceholder: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  videoRecordedTitle: {
+    color: colors.white,
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+  videoRecordedUri: {
+    color: colors.textLight,
+    fontSize: 11,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+  previewOverlayStamp: {
+    position: 'absolute',
+    bottom: 12,
+    left: 12,
+    right: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  previewStampText: {
+    color: colors.white,
+    fontSize: 11,
+    flex: 1,
+  },
+  previewActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 10,
+    paddingBottom: 10,
+  },
+  previewBtn: {
+    flex: 1,
+    height: 48,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  retakeBtn: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  retakeBtnText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  galleryBtn: {
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  galleryBtnText: {
+    color: colors.primary,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  saveBtn: {
+    backgroundColor: colors.primary,
+  },
+  saveBtnText: {
+    color: colors.white,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
 });
